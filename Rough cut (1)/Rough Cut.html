@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rough Cut — Indie Game Reviews, Unfiltered</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="styles.css">
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="data.js"></script>
+
+<script>
+  // Tweakable defaults — persisted by the host
+  window.TWEAKS = /*EDITMODE-BEGIN*/{
+    "accent": "#e85d04",
+    "background": "pure-black",
+    "startPage": "home"
+  }/*EDITMODE-END*/;
+</script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="logo.jsx"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="auth.jsx"></script>
+<script type="text/babel" src="comments.jsx"></script>
+<script type="text/babel" src="profile.jsx"></script>
+<script type="text/babel" src="homepage.jsx"></script>
+<script type="text/babel" src="reviewpage.jsx"></script>
+<script type="text/babel" src="logoshowcase.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect } = React;
+
+const PAGES = {
+  home: 'HOMEPAGE',
+  review: 'REVIEW PAGE',
+  profile: 'PROFILE',
+  logos: 'LOGO SYSTEM',
+};
+
+const ORANGE_OPTIONS = [
+  { key: 'default', label: 'Signal Orange', value: '#ff5a1f' },
+  { key: 'burnt', label: 'Burnt Ember', value: '#e85d04' },
+  { key: 'hot', label: 'Hot Rod', value: '#ff4500' },
+  { key: 'safety', label: 'Safety', value: '#ff7a00' },
+];
+
+function App() {
+  const initial = (() => {
+    try {
+      const saved = localStorage.getItem('roughcut.state');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { page: window.TWEAKS.startPage || 'home', reviewSlug: null };
+  })();
+
+  const [page, setPage] = useState(initial.page);
+  const [reviewSlug, setReviewSlug] = useState(initial.reviewSlug);
+  const [accent, setAccent] = useState(window.TWEAKS.accent || '#ff5a1f');
+  const [tweaksOpen, setTweaksOpen] = useState(false);
+  const [tweaksAvail, setTweaksAvail] = useState(false);
+  const [authModal, setAuthModal] = useState(null); // null | 'signin' | 'signup'
+
+  const auth = useAuth();
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('roughcut.state', JSON.stringify({ page, reviewSlug }));
+    } catch {}
+  }, [page, reviewSlug]);
+
+  // Tweaks protocol
+  useEffect(() => {
+    const onMsg = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setTweaksOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweaksOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    setTweaksAvail(true);
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const persist = (edits) => {
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+  };
+
+  const goReview = (slug) => {
+    setReviewSlug(slug);
+    setPage('review');
+    window.scrollTo(0, 0);
+  };
+  const goHome = () => {
+    setPage('home');
+    window.scrollTo(0, 0);
+  };
+  const goPage = (p) => {
+    setPage(p);
+    window.scrollTo(0, 0);
+  };
+
+  const currentReview = REVIEWS.find(r => r.slug === reviewSlug) || REVIEWS[0];
+
+  const openSignIn = () => setAuthModal('signin');
+  const openProfile = () => { setPage('profile'); window.scrollTo(0, 0); };
+
+  const pageProps = { auth, onSignInClick: openSignIn, onProfileClick: openProfile, accent };
+
+  return (
+    <>
+      {page === 'home' && <HomePage onRead={goReview} {...pageProps} />}
+      {page === 'review' && <ReviewPage review={currentReview} onBack={goHome} onRead={goReview} {...pageProps} />}
+      {page === 'profile' && <ProfilePage auth={auth} onBack={goHome} accent={accent} />}
+      {page === 'logos' && <LogoShowcase accent={accent} onClose={goHome} />}
+
+      {authModal && (
+        <AuthModal
+          mode={authModal}
+          onClose={() => setAuthModal(null)}
+          onAuth={auth}
+          accent={accent}
+        />
+      )}
+
+      {/* Floating page switcher — always visible, subtle */}
+      <div style={{
+        position: 'fixed', bottom: 16, left: 16, zIndex: 200,
+        display: 'flex', gap: 6, padding: 6,
+        background: '#0a0a0a', border: `2px solid ${accent}`,
+        boxShadow: '3px 3px 0 rgba(0,0,0,0.5)',
+      }}>
+        {Object.entries(PAGES).map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => goPage(k)}
+            style={{
+              padding: '8px 12px',
+              background: page === k ? accent : 'transparent',
+              color: page === k ? '#0a0a0a' : accent,
+              border: 'none', cursor: 'pointer',
+              fontFamily: 'Archivo Black, sans-serif',
+              fontSize: 11, letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tweaks panel */}
+      {tweaksOpen && (
+        <div style={{
+          position: 'fixed', top: 80, right: 16, zIndex: 300,
+          width: 300, background: '#0a0a0a',
+          border: `3px solid ${accent}`,
+          padding: 20,
+          boxShadow: '6px 6px 0 rgba(0,0,0,0.7)',
+          fontFamily: 'Inter, sans-serif',
+        }}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            borderBottom: `2px solid ${accent}`, paddingBottom: 10, marginBottom: 14,
+          }}>
+            <div style={{
+              fontFamily: 'Archivo Black, sans-serif',
+              fontSize: 18, color: accent, letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}>
+              ◆ TWEAKS
+            </div>
+            <button onClick={() => setTweaksOpen(false)} style={{
+              background: 'transparent', border: 'none', color: accent,
+              fontSize: 20, cursor: 'pointer', lineHeight: 1,
+            }}>✕</button>
+          </div>
+
+          <div style={{
+            fontFamily: 'JetBrains Mono, monospace', fontSize: 10,
+            color: accent, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8,
+          }}>
+            // ACCENT ORANGE
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, marginBottom: 16 }}>
+            {ORANGE_OPTIONS.map(o => (
+              <button
+                key={o.key}
+                onClick={() => { setAccent(o.value); persist({ accent: o.value }); }}
+                style={{
+                  padding: '10px 8px',
+                  background: o.value,
+                  color: '#0a0a0a',
+                  border: accent === o.value ? `3px solid #f2ece1` : `2px solid #0a0a0a`,
+                  cursor: 'pointer',
+                  fontFamily: 'Archivo Black, sans-serif',
+                  fontSize: 10, letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{
+            fontFamily: 'JetBrains Mono, monospace', fontSize: 10,
+            color: accent, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 8,
+          }}>
+            // JUMP TO
+          </div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {Object.entries(PAGES).map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => goPage(k)}
+                style={{
+                  padding: '10px', background: page === k ? accent : 'transparent',
+                  color: page === k ? '#0a0a0a' : '#f2ece1',
+                  border: `2px solid ${accent}`, cursor: 'pointer',
+                  fontFamily: 'Archivo Black, sans-serif',
+                  fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  textAlign: 'left',
+                }}
+              >
+                → {label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{
+            marginTop: 14, paddingTop: 10,
+            borderTop: '1px dashed #403c37',
+            fontFamily: 'JetBrains Mono, monospace', fontSize: 9,
+            color: '#6b6660', letterSpacing: '0.15em', textTransform: 'uppercase',
+          }}>
+            CHANGES PERSIST TO FILE
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
