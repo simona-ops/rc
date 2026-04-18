@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <style>@import url('https://fonts.googleapis.com/css2?family=Anton');</style>
+    <clipPath id="box">
+      <rect width="120" height="120"/>
+    </clipPath>
+  </defs>
+  <rect width="120" height="120" fill="#0a0a0a"/>
+  <text x="60" y="88" font-family="Anton, Impact, sans-serif" font-size="84" fill="#ff5a1f" letter-spacing="-3" text-anchor="middle">RC</text>
+  <!-- Diagonal cut bar -->
+  <rect x="57" y="-10" width="6" height="140" fill="#ff5a1f" transform="rotate(18, 60, 60)" clip-path="url(#box)" opacity="0.9"/>
+</svg>

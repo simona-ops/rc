@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="80" viewBox="0 0 520 80">
+  <defs>
+    <style>@import url('https://fonts.googleapis.com/css2?family=Anton');</style>
+  </defs>
+  <rect width="520" height="80" fill="#0a0a0a"/>
+  <text x="0" y="68" font-family="Anton, Impact, sans-serif" font-size="76" fill="#f2ece1" letter-spacing="-1.5">ROUGH</text>
+  <rect x="298" y="12" width="5" height="56" fill="#ff5a1f" transform="skewX(-18)"/>
+  <text x="318" y="68" font-family="Anton, Impact, sans-serif" font-size="76" fill="#ff5a1f" letter-spacing="-1.5">CUT</text>
+</svg>
